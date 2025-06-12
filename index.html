@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Feliz Dia dos Namorados 💖</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+  /* Reset */
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+  }
+
+  body, html {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 1s ease;
+  }
+
+  /* Mensagem central */
+  #message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    text-align: center;
+    font-size: 2.3rem;
+    font-weight: 700;
+    text-shadow: 0 0 8px #ff6584aa;
+    max-width: 90vw;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  /* Canvas principal da explosão e fogo de artifício */
+  #canvas {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    z-index: 8;
+    pointer-events: none;
+  }
+
+  /* Constelações */
+  .constellation {
+    position: fixed;
+    left: 50%;
+    width: 90vw;
+    max-width: 600px;
+    height: 20vh;
+    max-height: 150px;
+    transform: translateX(-50%);
+    z-index: 5;
+    opacity: 0;
+    pointer-events: auto;
+    transition: opacity 1s ease;
+  }
+
+  #constellation1 { top: 20%; }
+  #constellation2 { top: 35%; }
+  #constellation3 { top: 65%; }
+
+  /* Tooltip da constelação */
+  #tooltip {
+    position: fixed;
+    background: rgba(255, 102, 132, 0.9);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 220px;
+    z-index: 12;
+    user-select: none;
+  }
+
+  /* Estrelas constelação */
+  .star {
+    fill: #ffe3e6;
+    stroke: #b22254;
+    stroke-width: 0.8;
+    cursor: pointer;
+    filter: drop-shadow(0 0 2px #b22254aa);
+    transition: fill 0.3s ease, opacity 0.3s ease;
+    opacity: 0.7;
+  }
+  .star:hover, .star.active {
+    fill: #ff6584;
+    filter: drop-shadow(0 0 6px #ff6584cc);
+    opacity: 1;
+  }
+
+  /* Linhas da constelação */
+  line {
+    stroke: rgba(178, 34, 84, 0.7);
+    stroke-width: 0.3;
+    stroke-dasharray: 2,2;
+  }
+
+  /* Fundo de partículas */
+  #starsBackground {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    background: transparent;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  /* Iframe do YouTube visível */
+  #youtubeVideo {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90vw;
+    max-width: 560px;
+    height: 25vh;
+    max-height: 315px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  /* Botão de fallback para iniciar vídeo */
+  #playVideoButton {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    padding: 10px 20px;
+    background: rgba(255, 101, 132, 0.8);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: none;
+  }
+
+  /* Responsividade texto */
+  @media (max-width: 600px) {
+    #message {
+      font-size: 1.6rem;
+      max-width: 95vw;
+      padding: 0 10px;
+    }
+    #youtubeVideo {
+      width: 95vw;
+      height: 20vh;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Fundo partículas -->
+<canvas id="starsBackground"></canvas>
+
+<!-- Canvas explosão -->
+<canvas id="canvas"></canvas>
+
+<!-- Mensagem central -->
+<div id="message">Meu amor por você é maior que o universo e as estrelas</div>
+
+<!-- Constelações -->
+<div id="constellation1" class="constellation"></div>
+<div id="constellation2" class="constellation"></div>
+<div id="constellation3" class="constellation"></div>
+<div id="tooltip" role="tooltip" aria-hidden="true"></div>
+
+<!-- Iframe do YouTube para vídeo visível -->
+<iframe id="youtubeVideo" src="https://www.youtube.com/embed/tMWpm_GOLaA?autoplay=1&loop=1&playlist=tMWpm_GOLaA&controls=1&enablejsapi=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+<!-- Botão de fallback para iniciar vídeo -->
+<button id="playVideoButton">Tocar Vídeo</button>
+
+<script>
+// Carregar API do YouTube Iframe
+var tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+var player;
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('youtubeVideo', {
+    events: {
+      'onReady': onPlayerReady,
+      'onError': onPlayerError
+    }
+  });
+}
+
+function onPlayerReady(event) {
+  event.target.setVolume(25);
+  event.target.playVideo();
+  setTimeout(() => {
+    if (player.getPlayerState() !== YT.PlayerState.PLAYING) {
+      document.getElementById('playVideoButton').style.display = 'block';
+    } else {
+      document.getElementById('youtubeVideo').style.opacity = '1';
+    }
+  }, 3500); // Mostrar vídeo após explosão (3s + 0.5s)
+}
+
+function onPlayerError(event) {
+  console.error('Erro no player do YouTube:', event.data);
+  document.getElementById('playVideoButton').style.display = 'block';
+}
+
+document.getElementById('playVideoButton').addEventListener('click', () => {
+  if (player) {
+    player.playVideo();
+    document.getElementById('playVideoButton').style.display = 'none';
+    document.getElementById('youtubeVideo').style.opacity = '1';
+  }
+});
+
+// Canvas para explosão e fogo de artifício
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+
+function resize() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Função para forma de coração
+function heartShape(t) {
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+  return {x, y};
+}
+
+// Classe para partículas
+class Particle {
+  constructor(x, y, vx, vy, color, size) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.color = color;
+    this.size = size;
+    this.alpha = 1;
+    this.life = 100;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life--;
+    this.alpha = this.life / 100;
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Partículas da explosão e do rastro do fogo de artifício
+const particles = [];
+let exploded = false;
+let fireworkLaunched = false;
+let fireworkY = height;
+const fireworkDuration = 3000;
+const fireworkStartTime = Date.now();
+
+function createFireworkTrail(x, y) {
+  for (let i = 0; i < 5; i++) {
+    const vx = (Math.random() - 0.5) * 1;
+    const vy = Math.random() * -0.5;
+    const color = `rgba(255, 255, 255, ${0.6 + Math.random()*0.4})`;
+    particles.push(new Particle(x, y, vx, vy, color, 1 + Math.random()*0.5));
+  }
+}
+
+function explode() {
+  const centerX = width/2;
+  const centerY = height/2;
+  for (let i = 0; i < 120; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 3;
+    const p = heartShape(angle);
+    const vx = (p.x / 16) * speed;
+    const vy = -(p.y / 16) * speed;
+    const px = centerX + p.x * 10;
+    const py = centerY - p.y * 10;
+    const color = `rgba(255, 101, 132, ${0.6 + Math.random()*0.4})`;
+    particles.push(new Particle(px, py, vx, vy, color, 2 + Math.random()*1.5));
+  }
+  exploded = true;
+  setTimeout(() => {
+    document.body.style.background = 'linear-gradient(135deg, #4b1a3a, #a33f6f)';
+    document.getElementById('message').style.opacity = '1';
+    document.querySelectorAll('.constellation').forEach(c => c.style.opacity = '0.6');
+    document.getElementById('starsBackground').style.opacity = '1';
+  }, 500);
+}
+
+function animate() {
+  ctx.clearRect(0, 0, width, height);
+  const currentTime = Date.now();
+  const elapsed = currentTime - fireworkStartTime;
+
+  if (!fireworkLaunched && elapsed < fireworkDuration) {
+    const progress = elapsed / fireworkDuration;
+    fireworkY = height - (height / 2) * progress;
+    createFireworkTrail(width / 2, fireworkY);
+  } else if (!fireworkLaunched && elapsed >= fireworkDuration) {
+    fireworkLaunched = true;
+    explode();
+  }
+
+  particles.forEach((p, i) => {
+    p.update();
+    p.draw(ctx);
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  });
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+// Constelações e tooltip
+const constellationContainers = [
+  document.getElementById('constellation1'),
+  document.getElementById('constellation2'),
+  document.getElementById('constellation3')
+];
+const tooltip = document.getElementById('tooltip');
+
+const starsData = [
+  // Qualidade (constellation1, acima)
+  {x: 20, y: 20, label: 'Linda', category: 'Qualidade'},
+  {x: 40, y: 40, label: 'Inteligente', category: 'Qualidade'},
+  {x: 60, y: 60, label: 'Eu amo você', category: 'Qualidade'},
+  // Momento (constellation2, acima)
+  {x: 30, y: 30, label: '"Tão bom morrer de amor e continuar vivendo."\n— Mário Quintana', category: 'Momento'},
+  {x: 50, y: 50, label: '"Que não seja imortal, posto que é chama, mas que seja infinito enquanto dure."\n Carlos Drummond de Andrade', category: 'Momento'},
+  {x: 70, y: 70, label: 'Se houver outras mil chances vamos tentar em todas elas', category: 'Momento'},
+  // Sonho (constellation3, abaixo)
+  {x: 25, y: 25, label: 'Quero morar com você', category: 'Sonho'},
+  {x: 45, y: 45, label: 'Quero casar com você', category: 'Sonho'},
+  {x: 65, y: 65, label: 'Quero ter um filho com você', category: 'Sonho'},
+];
+
+const svgns = "http://www.w3.org/2000/svg";
+const svgs = constellationContainers.map(() => {
+  const svg = document.createElementNS(svgns, 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.style.width = '100%';
+  svg.style.height = '100%';
+  return svg;
+});
+
+function createLine(x1, y1, x2, y2) {
+  const line = document.createElementNS(svgns, 'line');
+  line.setAttribute('x1', x1);
+  line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2);
+  line.setAttribute('y2', y2);
+  line.setAttribute('stroke', 'rgba(178, 34, 84, 0.7)');
+  line.setAttribute('stroke-width', '0.3');
+  line.setAttribute('stroke-dasharray', '2,2');
+  return line;
+}
+
+function connectStars(category, svgIndex) {
+  const starsInCat = starsData.filter(s => s.category === category);
+  const svg = svgs[svgIndex];
+  for (let i = 0; i < starsInCat.length - 1; i++) {
+    const s1 = starsInCat[i];
+    const s2 = starsInCat[i+1];
+    svg.appendChild(createLine(s1.x, s1.y, s2.x, s2.y));
+  }
+}
+
+connectStars('Qualidade', 0);
+connectStars('Momento', 1);
+connectStars('Sonho', 2);
+
+starsData.forEach((star, i) => {
+  const svgIndex = star.category === 'Qualidade' ? 0 : star.category === 'Momento' ? 1 : 2;
+  const starEl = document.createElementNS(svgns, 'circle');
+  starEl.classList.add('star');
+  starEl.setAttribute('cx', star.x);
+  starEl.setAttribute('cy', star.y);
+  starEl.setAttribute('r', '1.3');
+  starEl.setAttribute('tabindex', 0);
+  starEl.setAttribute('aria-label', star.label + ' (' + star.category + ')');
+
+  starEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showTooltip(star, e.clientX, e.clientY);
+    document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+    starEl.classList.add('active');
+  });
+
+  starEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      showTooltip(star, starEl.getBoundingClientRect().left + 20, starEl.getBoundingClientRect().top);
+      document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+      starEl.classList.add('active');
+    }
+  });
+
+  svgs[svgIndex].appendChild(starEl);
+});
+
+svgs.forEach((svg, i) => constellationContainers[i].appendChild(svg));
+
+function showTooltip(star, x, y) {
+  tooltip.textContent = star.label;
+  const padding = 10;
+  const maxWidth = 220;
+
+  tooltip.style.opacity = '1';
+  tooltip.style.left = `${x + padding}px`;
+  tooltip.style.top = `${y + padding}px`;
+  tooltip.setAttribute('aria-hidden', 'false');
+
+  if (x + maxWidth + padding * 2 > window.innerWidth) {
+    tooltip.style.left = `${x - maxWidth - padding}px`;
+  }
+  if (y + 60 > window.innerHeight) {
+    tooltip.style.top = `${y - 60}px`;
+  }
+}
+
+document.body.addEventListener('click', () => {
+  tooltip.style.opacity = '0';
+  tooltip.setAttribute('aria-hidden', 'true');
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+});
+
+// Partículas estrelas de fundo
+const starsBgCanvas = document.getElementById('starsBackground');
+const starsBgCtx = starsBgCanvas.getContext('2d');
+starsBgCanvas.width = window.innerWidth;
+starsBgCanvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  starsBgCanvas.width = window.innerWidth;
+  starsBgCanvas.height = window.innerHeight;
+});
+
+class StarParticle {
+  constructor() {
+    this.x = Math.random() * starsBgCanvas.width;
+    this.y = Math.random() * starsBgCanvas.height;
+    this.radius = Math.random() * 0.7 + 0.3;
+    this.alpha = Math.random() * 0.6 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.05;
+    this.vy = (Math.random() - 0.5) * 0.05;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 0) this.x = starsBgCanvas.width;
+    else if (this.x > starsBgCanvas.width) this.x = 0;
+    if (this.y < 0) this.y = starsBgCanvas.height;
+    else if (this.y > starsBgCanvas.height) this.y = 0;
+  }
+  draw() {
+    starsBgCtx.beginPath();
+    starsBgCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    starsBgCtx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+    starsBgCtx.fill();
+  }
+}
+
+const starParticles = [];
+for (let i = 0; i < 250; i++) {
+  starParticles.push(new StarParticle());
+}
+
+function animateStarsBg() {
+  starsBgCtx.clearRect(0, 0, starsBgCanvas.width, starsBgCanvas.height);
+  starParticles.forEach(s => {
+    s.update();
+    s.draw();
+  });
+  requestAnimationFrame(animateStarsBg);
+}
+
+animateStarsBg();
+</script>
+</body>
+</html>
